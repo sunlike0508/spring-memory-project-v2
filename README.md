@@ -59,3 +59,92 @@ http://localhost:8080/memory
 스프링 부트는 수 많은 자동 구성을 제공한다. 
 
 그 덕분에 스프링 라이브러리를 포함해서 수 많은 라이브러리를 편리하게 사용할 수 있다.
+
+# 자동 구성 이해 1 - 스프링 부트의 동작
+
+스프링 부트는 다음 경로에 있는 파일을 읽어서 스프링 부트 자동 구성으로 사용한다. 
+
+`resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
+
+우리가 직접 만든 `memory-v2` 라이브러리와 스프링 부트가 제공하는 `spring-boot-autoconfigure` 라이브러 리의 다음 파일을 확인해보면 스프링 부트 자동 구성을 확인할 수 있다.
+
+**memory-v2 - org.springframework.boot.autoconfigure.AutoConfiguration.imports**
+
+```
+ memory.MemoryAutoConfig
+```
+
+이번에는 실제 스프링 부트를 보면
+
+**spring-boot-autoconfigure - org.springframework.boot.autoconfigure.AutoConfiguration.imports**
+
+org.springframework.boot/spring-boot-autoconfigure/3.0.2/42ad589ec930e05a2ed702a4940955ff97b16a8c/spring-boot-autoconfigure-3.0.2.jar!/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+
+```properties
+org.springframework.boot.autoconfigure.admin.SpringApplicationAdminJmxAutoConfiguration
+org.springframework.boot.autoconfigure.aop.AopAutoConfiguration
+org.springframework.boot.autoconfigure.amqp.RabbitAutoConfiguration
+org.springframework.boot.autoconfigure.batch.BatchAutoConfiguration
+org.springframework.boot.autoconfigure.cache.CacheAutoConfiguration
+org.springframework.boot.autoconfigure.cassandra.CassandraAutoConfiguration
+org.springframework.boot.autoconfigure.context.ConfigurationPropertiesAutoConfiguration
+org.springframework.boot.autoconfigure.context.LifecycleAutoConfiguration
+...
+```
+
+이번에는 스프링 부트가 어떤 방법으로 해당 파일들을 읽어서 동작하는지 알아보자. 
+
+이해를 돕기 위해 앞서 개발한 `autoconfig` 프로젝트를 열어보자.
+
+스프링 부트 자동 구성이 동작하는 원리는 다음 순서로 확인할 수 있다. 
+
+`@SpringBootApplication` -> `@EnableAutoConfiguration` -> `@Import(AutoConfigurationImportSelector.class)`
+
+스프링 부트는 보통 다음과 같은 방법으로 실행한다. **AutoConfigApplication**
+
+```java
+@SpringBootApplication
+public class AutoConfigApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(AutoConfigApplication.class, args);
+    }
+}
+```
+`run()` 에 보면 `AutoConfigApplication.class` 를 넘겨주는데, 이 클래스를 설정 정보로 사용한다는 뜻이다. 
+
+`AutoConfigApplication` 에는 `@SpringBootApplication` 애노테이션이 있는데, 여기에 중요한 설정 정보들이 들어있다.
+
+```java
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Inherited
+@SpringBootConfiguration
+@EnableAutoConfiguration
+@ComponentScan(excludeFilters = { @Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+		@Filter(type = FilterType.CUSTOM, classes = AutoConfigurationExcludeFilter.class) })
+public @interface SpringBootApplication {
+}
+```
+
+여기서 우리가 주목할 애노테이션은 `@EnableAutoConfiguration` 이다. 이름 그대로 자동 구성을 활 성화 하는 기능을 제공한다.
+
+```java
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Inherited
+@AutoConfigurationPackage
+@Import(AutoConfigurationImportSelector.class)
+public @interface EnableAutoConfiguration {
+
+	String ENABLED_OVERRIDE_PROPERTY = "spring.boot.enableautoconfiguration";
+}
+```
+
+`@Import` 는 주로 스프링 설정 정보( `@Configuration` )를 포함할 때 사용한다.
+
+그런데 `AutoConfigurationImportSelector` 를 열어보면 `@Configuration` 이 아니다.
+
+이 기능을 이해하려면 `ImportSelector` 에 대해 알아야 한다.
