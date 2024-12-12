@@ -148,3 +148,26 @@ public @interface EnableAutoConfiguration {
 그런데 `AutoConfigurationImportSelector` 를 열어보면 `@Configuration` 이 아니다.
 
 이 기능을 이해하려면 `ImportSelector` 에 대해 알아야 한다.
+
+# 자동 구성 이해2 - ImportSelector
+
+`@Import` 에 설정 정보를 추가하는 방법은 2가지가 있다.
+
+* 정적인 방법: `@Import` (클래스) 이것은 정적이다. 코드에 대상이 딱 박혀 있다. 설정으로 사용할 대상을 동적으로 변경할 수 없다.
+* 동적인 방법: `@Import` ( `ImportSelector` ) 코드로 프로그래밍해서 설정으로 사용할 대상을 동적으로 선택할 수 있다.
+
+**정적인 방법**
+
+스프링에서 다른 설정 정보를 추가하고 싶으면 다음과 같이 `@Import` 를 사용하면 된다. 
+
+```java
+ @Configuration
+ @Import({AConfig.class, BConfig.class})
+public class AppConfig {...} 
+```
+
+그런데 예제처럼 `AConfig` , `BConfig` 가 코드에 딱 정해진 것이 아니라, 특정 조건에 따라서 설정 정보를 선택해야 하는 경우에는 어떻게 해야할까?
+
+**동적인 방법**
+
+스프링은 설정 정보 대상을 동적으로 선택할 수 있는 `ImportSelector` 인터페이스를 제공한다.
