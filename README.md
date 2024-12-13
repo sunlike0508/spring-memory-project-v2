@@ -171,3 +171,30 @@ public class AppConfig {...}
 **동적인 방법**
 
 스프링은 설정 정보 대상을 동적으로 선택할 수 있는 `ImportSelector` 인터페이스를 제공한다.
+
+
+## ImportSelector
+
+```java
+package org.springframework.context.annotation;
+public interface ImportSelector {
+
+ String[] selectImports(AnnotationMetadata importingClassMetadata);
+ //...
+}
+```
+
+이해를 돕기 위해 간단하게 `ImportSelector` 를 사용하는 예제를 만들어보자.
+
+ImportSelector 예제
+
+다음 예제들은 모두 `src/test` 하위에 만들자 
+
+**HelloBean**
+
+```java
+package hello.selector;
+public class HelloBean {
+}
+```
+빈으로 등록할 대상이다.
