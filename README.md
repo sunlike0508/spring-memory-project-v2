@@ -163,7 +163,7 @@ public @interface EnableAutoConfiguration {
 ```java
  @Configuration
  @Import({AConfig.class, BConfig.class})
-public class AppConfig {...} 
+public class AppConfig {} 
 ```
 
 그런데 예제처럼 `AConfig` , `BConfig` 가 코드에 딱 정해진 것이 아니라, 특정 조건에 따라서 설정 정보를 선택해야 하는 경우에는 어떻게 해야할까?
@@ -171,7 +171,6 @@ public class AppConfig {...}
 **동적인 방법**
 
 스프링은 설정 정보 대상을 동적으로 선택할 수 있는 `ImportSelector` 인터페이스를 제공한다.
-
 
 ## ImportSelector
 
@@ -216,7 +215,6 @@ public class HelloConfig {
 ```
 설정 정보이다. `HelloBean` 을 스프링 빈으로 등록한다.
 
-
 **HelloImportSelector**
 
 ```java
@@ -242,7 +240,43 @@ public class HelloImportSelector implements ImportSelector {
 ### ImportSelectorTest
 
 ```java
+class ImportSelectorTest {
 
+    @Test
+    void staticConfig() {
+        AnnotationConfigApplicationContext applicationContext =
+                new AnnotationConfigApplicationContext(StaticConfig.class);
+
+        HelloBean bean = applicationContext.getBean(HelloBean.class);
+
+        assertThat(bean).isNotNull();
+    }
+
+
+    @Test
+    void selectorConfig() {
+        AnnotationConfigApplicationContext applicationContext =
+                new AnnotationConfigApplicationContext(SelectorConfig.class);
+
+        HelloBean bean = applicationContext.getBean(HelloBean.class);
+
+        assertThat(bean).isNotNull();
+    }
+
+
+    @Configuration
+    @Import(HelloImportSelector.class)
+    public static class SelectorConfig {
+
+    }
+
+
+    @Configuration
+    @Import(HelloConfig.class)
+    public static class StaticConfig {
+
+    }
+}
 ```
 
 **staticConfig()**
@@ -263,10 +297,43 @@ public class HelloImportSelector implements ImportSelector {
 
 그 결과 `HelloBean` 이 스프링 컨테이너에 잘 등록된 것을 확인할 수 있다.
 
+## @EnableAutoConfiguration 동작 방식
 
+이제 `ImportSelector` 를 이해했으니 다음 코드를 이해할 수 있다.
 
+**@EnableAutoConfiguration** 
 
+```java
+@AutoConfigurationPackage
+@Import(AutoConfigurationImportSelector.class)
+public @interface EnableAutoConfiguration {} 
+```
 
+`AutoConfigurationImportSelector` 는 `ImportSelector` 의 구현체이다. 따라서 설정 정보를 동적으로 선택할 수 있다.
+
+실제로 이 코드는 모든 라이브러리에 있는 다음 경로의 파일을 확인한다.
+
+`META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
+
+**memory-v2 - org.springframework.boot.autoconfigure.AutoConfiguration.imports** 
+```
+memory.MemoryAutoConfig
+```
+
+**spring-boot-autoconfigure - org.springframework.boot.autoconfigure.AutoConfiguration.imports** 
+
+```
+org.springframework.boot.autoconfigure.aop.AopAutoConfiguration
+org.springframework.boot.autoconfigure.data.jdbc.JdbcRepositoriesAutoConfiguration
+```
+
+그리고 파일의 내용을 읽어서 설정 정보로 선택한다.
+
+스프링 부트 자동 구성이 동작하는 방식은 다음 순서로 확인할 수 있다. 
+
+* `@SpringBootApplication` -> `@EnableAutoConfiguration` -> `@Import(AutoConfigurationImportSelector.class)`
+* `resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` 파일을 열어서 설정 정보 선택
+* 해당 파일의 설정 정보가 스프링 컨테이너에 등록되고 사용
 
 
 
